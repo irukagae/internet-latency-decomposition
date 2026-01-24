@@ -1,0 +1,14 @@
+# Ignore Data
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep       # Keeps the folder structure but ignores files
+!data/processed/.gitkeep
+
+# Ignore Python Cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Ignore Environment
+.env
+venv/

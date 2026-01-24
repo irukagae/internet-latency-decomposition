@@ -1,0 +1,16 @@
+# --- Core Data Processing ---
+numpy
+pandas
+
+# --- Visualization ---
+matplotlib
+seaborn
+
+# --- Machine Learning ---
+scikit-learn
+
+# --- Networking (The Engine) ---
+scapy         
+
+# --- Development Tools ---
+jupyter

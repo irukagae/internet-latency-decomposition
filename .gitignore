@@ -12,3 +12,7 @@ __pycache__/
 # Ignore Environment
 .env
 venv/
+
+# Ignore IDE configuration files
+.idea/
+*.iml

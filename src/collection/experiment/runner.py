@@ -7,7 +7,7 @@ from collection.probe.icmp import build_icmp_echo_packet
 # protocol -> packet builder mapping
 probe_builder = {"tcp": build_tcp_syn_packet,
                   "icmp": build_icmp_echo_packet,
-                  "upd": build_udp_packet}
+                  "udp": build_udp_packet}
 
 def run_expt(protocol: str, dst_ip: str, packet_size: int, num_probes: int, probe_interval: float, timeout: float):
     """Execute a single sealed active-probing experiment and return probe results."""

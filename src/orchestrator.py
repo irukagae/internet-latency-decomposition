@@ -30,7 +30,7 @@ protocol = ["tcp", "icmp", "udp"]
 packet_size = [64, 128, 256, 512, 1024, 1400]
 locations = ["in", "us", "jp", "de"]
 
-num_probes = 50
+num_probes = 30
 probe_interval = 0.25
 timeout = 1.0
 

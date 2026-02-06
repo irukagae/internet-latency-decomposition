@@ -12,19 +12,21 @@ def write_active_probe(results, output_path):
 
     df = pd.DataFrame(results)
 
-    columns = ["protocol", "dst_ip", "packet_size", "probe_index", "success",
+    columns = ["timestamp", "experiment_id", "source_location", "vpn_provider", "protocol",
+               "dst_ip", "packet_size", "probe_index", "success",
                "rtt_ms", "send_timestamp", "recv_timestamp"]
 
     df = df[columns]
     df.to_csv(output_path, index=False)
 
-def write_passive_packets(packets, output_path):
+def write_passive_packets(packets, output_path, source_location,
+                          vpn_provider, experiment_id, experiment_timestamp):
     """Writes passively captured packets to csv."""
 
     # ensures parent directory exists
     output_dir = os.path.dirname(output_path)
     if output_dir:
-        os.makedirs(output_path, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
 
     rows = []
 
@@ -47,13 +49,16 @@ def write_passive_packets(packets, output_path):
 
         rows.append({"timestamp": pkt.time, "src_ip": pkt[IP].src, "dst_ip": pkt[IP].dst,
                      "protocol": protocol, "packet_length": len(pkt), "ttl": pkt[IP].ttl,
-                     "tcp_flag": tcp_flag, "window_size": window_size})
+                     "tcp_flag": tcp_flag, "window_size": window_size,
+                     "source_location": source_location, "vpn_provider": vpn_provider,
+                     "experiment_id": experiment_id, "experiment_timestamp": experiment_timestamp})
 
     df = pd.DataFrame(rows)
 
-    columns = ["timestamp", "src_ip", "dst_ip",
-                   "protocol", "packet_length", "ttl",
-                   "tcp_flag", "window_size"]
+    columns = ["timestamp", "src_ip", "dst_ip", "protocol",
+               "packet_length", "ttl", "tcp_flag", "window_size",
+               "source_location", "vpn_provider",
+               "experiment_id", "experiment_timestamp"]
 
     df = df[columns]
     df.to_csv(output_path, index=False)

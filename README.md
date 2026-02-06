@@ -25,16 +25,16 @@ This project follows a strict MLOps lifecycle, prioritizing original data collec
 
 ### Phase 1: The Probe (Current Status) 🚧
 - [x] Repository Architecture & Environment Setup
-- [ ] Develop `src/collector.py` using Scapy to probe targets with varying packet sizes.
-- [ ] Implement robust error handling for network timeouts.
-- [ ] Generate initial raw dataset (`data/raw/`).
+- [x] Develop `src/collection/` to build probes; capture active & passive probes; and `csv_writer.py`.
+- [x] Build `orchestrator.py` to collect data on the basis of active and passive probes.
+- [ ] Start collecting raw dataset (`data/raw/`).
 
 ### Phase 2: Analysis & Baseline Modeling
 - [ ] Exploratory Data Analysis (EDA) to visualize Packet Size vs. RTT linear relationships.
 - [ ] Train **Baseline Heuristic Model** (Minimum RTT subtraction).
 - [ ] Train **Linear Regression Model** to estimate link bandwidth ($D_{trans}$).
 
-### Phase 3: The Automation (MLOps)
+### Phase 3: The Automation
 - [ ] Configure GitHub Actions for **Daily Data Collection**.
 - [ ] Build `src/monitor.py` to detect **Data Drift** (network route changes).
 - [ ] Implement automated weekly model evaluation.
@@ -42,17 +42,33 @@ This project follows a strict MLOps lifecycle, prioritizing original data collec
 ## 📂 Repository Structure
 ```text
 internet-latency-decomposition/
-├── .github/workflows/   # Automation pipelines (Daily Collection)
-├── data/                # Local data storage (Ignored by Git)
-├── notebooks/           # Jupyter notebooks for experiments & visualization
-├── src/                 # Production Source Code
-│   ├── __init__.py               
-│   ├── collector.py     # Scapy-based probing engine
-│   ├── preprocessing.py # Data cleaning & feature engineering
-│   └── model.py         # Latency decomposition logic
+├── .github/workflows/   
+├── data
+|   ├──processed/
+|   └──raw/
+├── notebooks/           
+├── src/
+│   ├── collection/
+│   │   ├── capture/
+│   │   │   ├── .gitkeep
+│   │   │   └── passive.py
+│   │   ├── experiment/
+│   │   │   ├── .gitkeep
+│   │   │   └── runner.py
+│   │   ├── persistence/
+│   │   │   └── csv_writer.py
+│   │   └── probe/
+│   │       ├── base.py
+│   │       ├── icmp.py
+│   │       ├── tcp.py
+│   │       └── udp.py
+│   ├── __init__.py
+│   ├── model.py
+│   ├── orchestrator.py
+│   └── preprocessing.py
 ├── requirements.txt 
 ├── notes/    
-└── README.md            # Project Documentation
+└── README.md            
 ```
 ---
 

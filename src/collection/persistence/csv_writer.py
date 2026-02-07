@@ -17,7 +17,9 @@ def write_active_probe(results, output_path):
                "rtt_ms", "send_timestamp", "recv_timestamp"]
 
     df = df[columns]
-    df.to_csv(output_path, index=False)
+
+    file_exists = os.path.exists(output_path)
+    df.to_csv(output_path, mode="a", header=not file_exists, index=False)
 
 def write_passive_packets(packets, output_path, source_location,
                           vpn_provider, experiment_id, experiment_timestamp):
@@ -61,4 +63,6 @@ def write_passive_packets(packets, output_path, source_location,
                "experiment_id", "experiment_timestamp"]
 
     df = df[columns]
-    df.to_csv(output_path, index=False)
+
+    file_exists = os.path.exists(output_path)
+    df.to_csv(output_path, mode="a", header=not file_exists, index=False)

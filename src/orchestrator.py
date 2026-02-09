@@ -26,7 +26,7 @@ def get_active_interface():
 
     return None
 
-def connect_vpn(location_code: str, warmup_time = 15):
+def connect_vpn(location_code: str, warmup_time = 10):
     """Connects Mullvad VPN to the desired location."""
 
     print(f"[VPN] Connecting to {location_code.upper()}")
@@ -43,7 +43,7 @@ def disconnect_vpn():
 
     print("[VPN] Disconnecting Mullvad VPN...\n")
     os.system("mullvad disconnect")
-    time.sleep(5)
+    time.sleep(3)
 
 protocol = ["tcp", "icmp", "udp"]
 packet_size = [64, 128, 256, 512, 1024, 1400]
@@ -53,7 +53,7 @@ num_probes = 30
 probe_interval = 0.25
 timeout = 1.0
 
-def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider):
+def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider, target):
     expt_id = uuid.uuid4().hex
     timestamp = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S')
 
@@ -106,7 +106,7 @@ def main():
                 for pktsize in packet_size:
                     run_single_expt(protocol=prt, packet_size=pktsize,
                                     dst_ip=tar, source_location=loc,
-                                    vpn_provider=vpn_provider)
+                                    vpn_provider=vpn_provider, target=tar)
 
     disconnect_vpn()
 

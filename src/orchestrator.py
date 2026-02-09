@@ -60,7 +60,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     data_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[EXPT] ID = {expt_id}")
-    print(f"[EXPT] Protocol={protocol}, Size={packet_size}, Src={source_location}")
+    print(f"[EXPT] Protocol={protocol}, Size={packet_size}, Src={source_location}, Target={target}")
 
     active_iface = get_active_interface()
 

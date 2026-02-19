@@ -2,7 +2,7 @@ import os
 import time
 import uuid
 from datetime import datetime, UTC
-from scapy.all import get_if_list, get_if_addr
+from scapy.all import conf
 from pathlib import Path
 
 from collection.experiment.runner import run_expt
@@ -13,30 +13,33 @@ project_root = Path(__file__).resolve().parent.parent
 data_dir = project_root / "data" / "raw"
 
 def get_active_interface():
-    """Automatically identifies the currently active network interface."""
+    """Returns the interface currently used by windows to send traffic to the internet"""
 
-    for iface in get_if_list():
-        try:
-            ip = get_if_addr(iface)
-            if ip.startswith("10.") or ip.startswith("192.") or ip.startswith("172."):
-                return iface
+    iface = conf.route.route("0.0.0.0")[0]
+    return iface
 
-        except Exception:
-            continue
-
-    return None
-
-def connect_vpn(location_code: str, warmup_time = 10):
+def connect_vpn(location_code: str, warmup_time = 15):
     """Connects Mullvad VPN to the desired location."""
 
     print(f"[VPN] Connecting to {location_code.upper()}")
 
+    old_iface = get_active_interface()
+
     os.system(f"mullvad relay set location {location_code}")
     os.system("mullvad connect")
 
-    print("[VPN] Waiting for tunnel stabilization...\n")
-    time.sleep(warmup_time)
-    print("[VPN] Tunnel stabilization completed...\n")
+    print("[VPN] Waiting for routing convergence...")
+
+    start = time.time()
+    while time.time() - start < warmup_time:
+        new_iface = get_active_interface()
+        if new_iface != old_iface:
+            print(f"[VPN] Tunnel active via {new_iface}\n")
+            return new_iface
+
+        time.sleep(1)
+
+    raise RuntimeError("VPN routing did not stabilize in time.")
 
 def disconnect_vpn():
     """Disconnects Mullvad VPN"""
@@ -53,6 +56,13 @@ num_probes = 30
 probe_interval = 0.25
 timeout = 1.0
 
+def warmup_tunnel(protocol="icmp", dst_ip="8.8.8.8", iface=None):
+    print("[INFO] Running VPN warmup probes...")
+
+    run_expt(protocol, dst_ip, packet_size=64, num_probes=7, probe_interval=0.2, timeout=1.0, iface=iface, record=False)
+
+    print("[INFO] Warmup completed.\n")
+
 def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider, target):
     expt_id = uuid.uuid4().hex
     timestamp = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S')
@@ -63,6 +73,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     print(f"[EXPT] Protocol={protocol}, Size={packet_size}, Src={source_location}, Target={target}")
 
     active_iface = get_active_interface()
+    print(f"[INFO] Using interface: {active_iface}")
 
     capture_start = time.time()
     estimated_duration = (num_probes * probe_interval + timeout + 2.0)
@@ -73,7 +84,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
 
     # active probing
     results = run_expt(protocol=protocol, dst_ip=dst_ip, packet_size=packet_size,
-                       num_probes=num_probes, probe_interval=probe_interval, timeout=timeout)
+                       num_probes=num_probes, probe_interval=probe_interval, timeout=timeout, iface=active_iface)
 
     for row in results:
         row["source_location"] = source_location
@@ -100,6 +111,9 @@ def main():
         else:
             connect_vpn(loc)
             vpn_provider = "Mullvad"
+
+            active_iface = get_active_interface()
+            warmup_tunnel(iface=active_iface)
 
         for tar in target:
             for prt in protocol:

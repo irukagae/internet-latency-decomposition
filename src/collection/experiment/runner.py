@@ -9,7 +9,9 @@ probe_builder = {"tcp": build_tcp_syn_packet,
                   "icmp": build_icmp_echo_packet,
                   "udp": build_udp_packet}
 
-def run_expt(protocol: str, dst_ip: str, packet_size: int, num_probes: int, probe_interval: float, timeout: float):
+def run_expt(protocol: str, dst_ip: str,
+             packet_size: int, num_probes: int, probe_interval: float,
+             timeout: float, iface, record: bool = True):
     """Execute a single sealed active-probing experiment and return probe results."""
 
     protocol = protocol.lower()
@@ -29,7 +31,7 @@ def run_expt(protocol: str, dst_ip: str, packet_size: int, num_probes: int, prob
             packet = packet_builder(dst_ip, packet_size=packet_size)
 
         # measure rtt
-        rtt_result = measure_rtt(packet, timeout=timeout)
+        rtt_result = measure_rtt(packet, timeout=timeout, iface=iface)
 
         # attach experiment metadata
         probe_result = {"protocol": protocol,
@@ -41,7 +43,8 @@ def run_expt(protocol: str, dst_ip: str, packet_size: int, num_probes: int, prob
                         "send_timestamp": rtt_result["send_timestamp"],
                         "recv_timestamp": rtt_result["recv_timestamp"]}
 
-        result.append(probe_result)
+        if record:
+            result.append(probe_result)
 
         # sleep between the probes (not after the last one)
         if probe_index < num_probes - 1:

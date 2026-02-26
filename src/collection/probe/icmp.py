@@ -1,7 +1,7 @@
 from scapy.layers.inet import IP, ICMP
 from scapy.packet import Raw
 
-def build_icmp_echo_packet(dst_ip, packet_size=64):
+def build_icmp_echo_packet(dst_ip, src_ip, packet_size=64):
     """Build an ICMP Echo request (ping-like) packet with an approximate total packet size."""
 
     # Approximate header size (bytes)
@@ -15,7 +15,7 @@ def build_icmp_echo_packet(dst_ip, packet_size=64):
     payload = Raw(load=b"A" * payload_size) if payload_size > 0 else None
 
     # Construct packet layers
-    ip_layer = IP(dst=dst_ip)
+    ip_layer = IP(dst=dst_ip, src=src_ip)
     icmp_layer = ICMP(type="echo-request")
 
     if payload:

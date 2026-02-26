@@ -9,7 +9,7 @@ probe_builder = {"tcp": build_tcp_syn_packet,
                   "icmp": build_icmp_echo_packet,
                   "udp": build_udp_packet}
 
-def run_expt(protocol: str, dst_ip: str,
+def run_expt(protocol: str, dst_ip: str, src_ip: str,
              packet_size: int, num_probes: int, probe_interval: float,
              timeout: float, iface, record: bool = True):
     """Execute a single sealed active-probing experiment and return probe results."""
@@ -24,11 +24,11 @@ def run_expt(protocol: str, dst_ip: str,
     for probe_index in range(num_probes):
         # build packet (protocol specific)
         if protocol == "tcp":
-            packet = packet_builder(dst_ip, packet_size=packet_size)
+            packet = packet_builder(dst_ip, src_ip=src_ip, packet_size=packet_size)
         elif protocol == "icmp":
-            packet = packet_builder(dst_ip, packet_size=packet_size)
+            packet = packet_builder(dst_ip, src_ip=src_ip, packet_size=packet_size)
         else: #udp
-            packet = packet_builder(dst_ip, packet_size=packet_size)
+            packet = packet_builder(dst_ip, src_ip=src_ip, packet_size=packet_size)
 
         # measure rtt
         rtt_result = measure_rtt(packet, timeout=timeout, iface=iface)

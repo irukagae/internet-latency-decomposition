@@ -15,15 +15,20 @@ data_dir = project_root / "data" / "raw"
 def get_active_interface():
     """Returns the interface currently used by windows to send traffic to the internet"""
 
-    iface = conf.route.route("0.0.0.0")[0]
-    return iface
+    conf.route.resync()  # force scapy to refresh its routing table from the OS to detect VPN changes
+
+    route_info = conf.route.route("0.0.0.0")
+    iface = route_info[0]
+    src_ip = route_info[1]
+
+    return iface, src_ip
 
 def connect_vpn(location_code: str, warmup_time = 15):
     """Connects Mullvad VPN to the desired location."""
 
     print(f"[VPN] Connecting to {location_code.upper()}")
 
-    old_iface = get_active_interface()
+    old_iface, old_ip = get_active_interface()  #unpack the tuple to store both old interface and old IP
 
     os.system(f"mullvad relay set location {location_code}")
     os.system("mullvad connect")
@@ -32,10 +37,10 @@ def connect_vpn(location_code: str, warmup_time = 15):
 
     start = time.time()
     while time.time() - start < warmup_time:
-        new_iface = get_active_interface()
-        if new_iface != old_iface:
+        new_iface, new_ip = get_active_interface()  #unpack the tuple for new routing state
+        if new_iface != old_iface and new_ip != old_ip:
             print(f"[VPN] Tunnel active via {new_iface}\n")
-            return new_iface
+            return new_iface, new_ip
 
         time.sleep(1)
 
@@ -56,10 +61,10 @@ num_probes = 30
 probe_interval = 0.25
 timeout = 1.0
 
-def warmup_tunnel(protocol="icmp", dst_ip="8.8.8.8", iface=None):
+def warmup_tunnel(protocol="icmp", dst_ip="8.8.8.8", src_ip=None, iface=None):
     print("[INFO] Running VPN warmup probes...")
 
-    run_expt(protocol, dst_ip, packet_size=64, num_probes=7, probe_interval=0.2, timeout=1.0, iface=iface, record=False)
+    run_expt(protocol, dst_ip, src_ip, packet_size=64, num_probes=7, probe_interval=0.2, timeout=1.0, iface=iface, record=False)
 
     print("[INFO] Warmup completed.\n")
 
@@ -72,7 +77,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     print(f"[EXPT] ID = {expt_id}")
     print(f"[EXPT] Protocol={protocol}, Size={packet_size}, Src={source_location}, Target={target}")
 
-    active_iface = get_active_interface()
+    active_iface, src_ip = get_active_interface()
     print(f"[INFO] Using interface: {active_iface}")
 
     capture_start = time.time()
@@ -83,7 +88,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     packets = capture_packets(interface=active_iface, start_time=capture_start, end_time=capture_end)
 
     # active probing
-    results = run_expt(protocol=protocol, dst_ip=dst_ip, packet_size=packet_size,
+    results = run_expt(protocol=protocol, dst_ip=dst_ip, src_ip=src_ip, packet_size=packet_size,
                        num_probes=num_probes, probe_interval=probe_interval, timeout=timeout, iface=active_iface)
 
     for row in results:
@@ -112,7 +117,7 @@ def main():
             connect_vpn(loc)
             vpn_provider = "Mullvad"
 
-            active_iface = get_active_interface()
+            active_iface, src_ip = get_active_interface()
             warmup_tunnel(iface=active_iface)
 
         for tar in target:

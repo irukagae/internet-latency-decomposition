@@ -1,6 +1,9 @@
 import os
+import re
 import time
 import uuid
+import threading
+import subprocess
 from datetime import datetime, UTC
 from scapy.all import conf
 from pathlib import Path
@@ -17,13 +20,34 @@ def get_active_interface():
 
     conf.route.resync()  # force scapy to refresh its routing table from the OS to detect VPN changes
 
+    result = subprocess.run(["mullvad", "status"], capture_output=True, text=True)
+    status_output = result.stdout.strip()
+
+    if "Connected" in status_output:
+        # mullvad is active: extract tunnel IP from ipconfig's Mullvad adapter section
+        ipconfig = subprocess.run(["ipconfig"], capture_output=True, text=True)
+        lines = ipconfig.stdout.splitlines()
+
+        mullvad_section = False
+        for  line in lines:
+            if "Mullvad" in line:
+                mullvad_section = True  # entered the mullvad adapter section in ipconfig
+            if mullvad_section and "IPv4 Address" in line:
+                # extract IP from line like: "   IPv4 Address. . . : 10.141.190.96"
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                if match:
+                    tunnel_ip = match.group(1)
+                    route_info = conf.route.route("0.0.0.0")
+                    iface = route_info[0]
+                    return iface, tunnel_ip
+
+    # VPN not connected or India baseline: use normal routing
     route_info = conf.route.route("0.0.0.0")
     iface = route_info[0]
     src_ip = route_info[1]
-
     return iface, src_ip
 
-def connect_vpn(location_code: str, warmup_time = 15):
+def connect_vpn(location_code: str, warmup_time = 60):
     """Connects Mullvad VPN to the desired location."""
 
     print(f"[VPN] Connecting to {location_code.upper()}")
@@ -37,12 +61,16 @@ def connect_vpn(location_code: str, warmup_time = 15):
 
     start = time.time()
     while time.time() - start < warmup_time:
-        new_iface, new_ip = get_active_interface()  #unpack the tuple for new routing state
-        if new_iface != old_iface and new_ip != old_ip:
-            print(f"[VPN] Tunnel active via {new_iface}\n")
-            return new_iface, new_ip
+        result = subprocess.run(["mullvad", "status"], capture_output=True, text=True)
+        status = result.stdout.strip()
 
-        time.sleep(1)
+        if "Connected" in status:
+            iface, tunnel_ip = get_active_interface()
+            print(f"[VPN] Tunnel active | Tunnel IP: {tunnel_ip}\n")
+            return iface, tunnel_ip
+
+        print(f"[VPN] Status: {status.splitlines()[0]} - waiting...")
+        time.sleep(3)
 
     raise RuntimeError("VPN routing did not stabilize in time.")
 
@@ -55,7 +83,7 @@ def disconnect_vpn():
 
 protocol = ["tcp", "icmp", "udp"]
 packet_size = [64, 128, 256, 512, 1024, 1400]
-locations = ["in", "us", "jp", "de"]
+locations = ["us", "jp", "de"]
 
 num_probes = 30
 probe_interval = 0.25
@@ -85,11 +113,20 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     capture_end = capture_start + estimated_duration
 
     # passive capture
-    packets = capture_packets(interface=active_iface, start_time=capture_start, end_time=capture_end)
+    packets = []
 
-    # active probing
+    def passive_task():
+        captured = capture_packets(interface=active_iface, start_time=capture_start, end_time=capture_end)
+        packets.extend(captured)
+
+    passive_thread = threading.Thread(target=passive_task)
+    passive_thread.start()
+
+    # active probing runs concurrently while passive thread  is sniffing
     results = run_expt(protocol=protocol, dst_ip=dst_ip, src_ip=src_ip, packet_size=packet_size,
                        num_probes=num_probes, probe_interval=probe_interval, timeout=timeout, iface=active_iface)
+
+    passive_thread.join()  # wait for passive capture to finish before proceeding
 
     for row in results:
         row["source_location"] = source_location
@@ -118,7 +155,7 @@ def main():
             vpn_provider = "Mullvad"
 
             active_iface, src_ip = get_active_interface()
-            warmup_tunnel(iface=active_iface)
+            warmup_tunnel(src_ip=src_ip, iface=active_iface)
 
         for tar in target:
             for prt in protocol:

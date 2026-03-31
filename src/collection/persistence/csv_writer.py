@@ -55,6 +55,10 @@ def write_passive_packets(packets, output_path, source_location,
                      "source_location": source_location, "vpn_provider": vpn_provider,
                      "experiment_id": experiment_id, "experiment_timestamp": experiment_timestamp})
 
+        if not rows:
+            print("[WARNING] No IP packets were captured in this window. Skipping passive write")
+            return
+
     df = pd.DataFrame(rows)
 
     columns = ["timestamp", "src_ip", "dst_ip", "protocol",

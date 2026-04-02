@@ -21,8 +21,7 @@ def write_active_probe(results, output_path):
     file_exists = os.path.exists(output_path)
     df.to_csv(output_path, mode="a", header=not file_exists, index=False)
 
-def write_passive_packets(packets, output_path, source_location,
-                          vpn_provider, experiment_id, experiment_timestamp):
+def write_passive_packets(packets, output_path, source_location, experiment_id, experiment_timestamp):
     """Writes passively captured packets to csv."""
 
     # ensures parent directory exists
@@ -52,8 +51,8 @@ def write_passive_packets(packets, output_path, source_location,
         rows.append({"timestamp": pkt.time, "src_ip": pkt[IP].src, "dst_ip": pkt[IP].dst,
                      "protocol": protocol, "packet_length": len(pkt), "ttl": pkt[IP].ttl,
                      "tcp_flag": tcp_flag, "window_size": window_size,
-                     "source_location": source_location, "vpn_provider": vpn_provider,
-                     "experiment_id": experiment_id, "experiment_timestamp": experiment_timestamp})
+                     "source_location": source_location, "experiment_id": experiment_id,
+                     "experiment_timestamp": experiment_timestamp})
 
         if not rows:
             print("[WARNING] No IP packets were captured in this window. Skipping passive write")

@@ -1,9 +1,6 @@
-import os
-import re
 import time
 import uuid
 import threading
-import subprocess
 from datetime import datetime, UTC
 from scapy.all import conf
 from pathlib import Path
@@ -12,93 +9,49 @@ from collection.experiment.runner import run_expt
 from collection.capture.passive import capture_packets
 from collection.persistence.csv_writer import write_passive_packets, write_active_probe
 
+#resolve project root dynamically so the script works regardless of working directory
 project_root = Path(__file__).resolve().parent.parent
 data_dir = project_root / "data" / "raw"
 
 def get_active_interface():
-    """Returns the interface currently used by windows to send traffic to the internet"""
+    """Returns the interface currently used by windows to send traffic to the internet
+
+       Forces scapy to resync its routing table from the OS before querying, ensuring stable cache doesn't
+       return outdated interface information"""
 
     conf.route.resync()  # force scapy to refresh its routing table from the OS to detect VPN changes
 
-    result = subprocess.run(["mullvad", "status"], capture_output=True, text=True)
-    status_output = result.stdout.strip()
-
-    if "Connected" in status_output:
-        # mullvad is active: extract tunnel IP from ipconfig's Mullvad adapter section
-        ipconfig = subprocess.run(["ipconfig"], capture_output=True, text=True)
-        lines = ipconfig.stdout.splitlines()
-
-        mullvad_section = False
-        for  line in lines:
-            if "Mullvad" in line:
-                mullvad_section = True  # entered the mullvad adapter section in ipconfig
-            if mullvad_section and "IPv4 Address" in line:
-                # extract IP from line like: "   IPv4 Address. . . : 10.141.190.96"
-                match = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
-                if match:
-                    tunnel_ip = match.group(1)
-                    route_info = conf.route.route("0.0.0.0")
-                    iface = route_info[0]
-                    return iface, tunnel_ip
-
-    # VPN not connected or India baseline: use normal routing
-    route_info = conf.route.route("0.0.0.0")
+    route_info = conf.route.route("0.0.0.0")  #query default route
     iface = route_info[0]
     src_ip = route_info[1]
     return iface, src_ip
 
-def connect_vpn(location_code: str, warmup_time = 60):
-    """Connects Mullvad VPN to the desired location."""
+# experiment parameters
+protocol = ["tcp", "icmp", "udp"] # protocols to probe with
+packet_size = [64, 128, 256, 512, 1024, 1400]  # packet sizes in bytes to vary D_trans
+location = "in"  # source location hardcoded to INDIA
 
-    print(f"[VPN] Connecting to {location_code.upper()}")
+# probe configuration
+num_probes = 30  # number of probes per experiment
+probe_interval = 0.25  # seconds between consecutive probes
+timeout = 1.0  # seconds to wait for a response before marking probe a failure
 
-    old_iface, old_ip = get_active_interface()  #unpack the tuple to store both old interface and old IP
+def get_week_of_month():
+    """Returns the week of the month as w1/w2/w3/w4/w5 based on the current day."""
 
-    os.system(f"mullvad relay set location {location_code}")
-    os.system("mullvad connect")
+    day = datetime.now().day
+    week_num = (day - 1) // 7+1
+    return f"w{week_num}"
 
-    print("[VPN] Waiting for routing convergence...")
+def run_single_expt(protocol, packet_size, dst_ip, source_location, target):
+    """Executes a single end-to-end experiment: passive capture + active probing + CSV writing
 
-    start = time.time()
-    while time.time() - start < warmup_time:
-        result = subprocess.run(["mullvad", "status"], capture_output=True, text=True)
-        status = result.stdout.strip()
+       Generates a unique Experiment ID and UTC timestamp for full traceability.
+       Passive capture and active probing works concurrently via threading to ensure background traffic is captured
+       simultaneously with RTT measurement."""
 
-        if "Connected" in status:
-            iface, tunnel_ip = get_active_interface()
-            print(f"[VPN] Tunnel active | Tunnel IP: {tunnel_ip}\n")
-            return iface, tunnel_ip
-
-        print(f"[VPN] Status: {status.splitlines()[0]} - waiting...")
-        time.sleep(3)
-
-    raise RuntimeError("VPN routing did not stabilize in time.")
-
-def disconnect_vpn():
-    """Disconnects Mullvad VPN"""
-
-    print("[VPN] Disconnecting Mullvad VPN...\n")
-    os.system("mullvad disconnect")
-    time.sleep(3)
-
-protocol = ["tcp", "icmp", "udp"]
-packet_size = [64, 128, 256, 512, 1024, 1400]
-locations = ["us", "jp", "de"]
-
-num_probes = 30
-probe_interval = 0.25
-timeout = 1.0
-
-def warmup_tunnel(protocol="icmp", dst_ip="8.8.8.8", src_ip=None, iface=None):
-    print("[INFO] Running VPN warmup probes...")
-
-    run_expt(protocol, dst_ip, src_ip, packet_size=64, num_probes=7, probe_interval=0.2, timeout=1.0, iface=iface, record=False)
-
-    print("[INFO] Warmup completed.\n")
-
-def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider, target):
-    expt_id = uuid.uuid4().hex
-    timestamp = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S')
+    expt_id = uuid.uuid4().hex  # unique Experiment ID to join active ans passive CSVs later
+    timestamp = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S')  # UTC timestamp for consistency
 
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -108,11 +61,12 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     active_iface, src_ip = get_active_interface()
     print(f"[INFO] Using interface: {active_iface}")
 
+    # calculate capture window - passive sniffer runs exactly for this duration
     capture_start = time.time()
-    estimated_duration = (num_probes * probe_interval + timeout + 2.0)
+    estimated_duration = (num_probes * probe_interval + timeout + 2.0)  # 2sec buffer for safety
     capture_end = capture_start + estimated_duration
 
-    # passive capture
+    # passive capture runs in a background thread concurrently with active probing
     packets = []
 
     def passive_task():
@@ -122,7 +76,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
     passive_thread = threading.Thread(target=passive_task)
     passive_thread.start()
 
-    # active probing runs concurrently while passive thread  is sniffing
+    # active probing runs on main thread while passive thread sniffs background traffic
     results = run_expt(protocol=protocol, dst_ip=dst_ip, src_ip=src_ip, packet_size=packet_size,
                        num_probes=num_probes, probe_interval=probe_interval, timeout=timeout, iface=active_iface)
 
@@ -130,41 +84,27 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, vpn_provider
 
     for row in results:
         row["source_location"] = source_location
-        row["vpn_provider"] = vpn_provider
         row["experiment_id"] = expt_id
         row["timestamp"] = timestamp
 
-    write_active_probe(results, str(data_dir / f"active_probe_raw_{datetime.now().strftime('%Y_%m')}.csv"))
-    write_passive_packets(packets, str(data_dir / f"passive_probe_raw_{datetime.now().strftime('%Y_%m')}.csv"),
-                          source_location=source_location, vpn_provider=vpn_provider, experiment_id=expt_id,
+    file_label = f"{datetime.now().strftime('%Y_%m')}_{get_week_of_month()}"
+    write_active_probe(results, str(data_dir / f"active_probe_raw_{file_label}.csv"))
+    write_passive_packets(packets, str(data_dir / f"passive_probe_raw_{file_label}.csv"),
+                          source_location=source_location, experiment_id=expt_id,
                           experiment_timestamp=timestamp)
 
     print(f"[EXPT] Completed -> {data_dir}\n")
 
 def main():
-    target = ["8.8.8.8", "1.1.1.1", "9.9.9.9"]
+    target = ["8.8.8.8", "1.1.1.1", "208.67.222.222", "180.76.76.76", "185.228.168.9"]
 
     print("STARTING DATA COLLECTION...\n")
 
-    for loc in locations:
-        if loc == "in":
-            disconnect_vpn()
-            vpn_provider = "None"
-        else:
-            connect_vpn(loc)
-            vpn_provider = "Mullvad"
-
-            active_iface, src_ip = get_active_interface()
-            warmup_tunnel(src_ip=src_ip, iface=active_iface)
-
-        for tar in target:
-            for prt in protocol:
-                for pktsize in packet_size:
-                    run_single_expt(protocol=prt, packet_size=pktsize,
-                                    dst_ip=tar, source_location=loc,
-                                    vpn_provider=vpn_provider, target=tar)
-
-    disconnect_vpn()
+    for tar in target:
+        for prt in protocol:
+            for pktsize in packet_size:
+                run_single_expt(protocol=prt, packet_size=pktsize,
+                                dst_ip=tar, source_location=location, target=tar)
 
     print("ALL EXPERIMENT COMPLETED.")
 

@@ -12,7 +12,7 @@ def write_active_probe(results, output_path):
 
     df = pd.DataFrame(results)
 
-    columns = ["timestamp", "experiment_id", "source_location", "vpn_provider", "protocol",
+    columns = ["timestamp", "experiment_id", "source_location", "protocol",
                "dst_ip", "packet_size", "probe_index", "success",
                "rtt_ms", "send_timestamp", "recv_timestamp"]
 
@@ -62,8 +62,7 @@ def write_passive_packets(packets, output_path, source_location, experiment_id, 
 
     columns = ["timestamp", "src_ip", "dst_ip", "protocol",
                "packet_length", "ttl", "tcp_flag", "window_size",
-               "source_location", "vpn_provider",
-               "experiment_id", "experiment_timestamp"]
+               "source_location", "experiment_id", "experiment_timestamp"]
 
     df = df[columns]
 

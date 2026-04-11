@@ -96,7 +96,7 @@ def run_single_expt(protocol, packet_size, dst_ip, source_location, target):
     print(f"[EXPT] Completed -> {data_dir}\n")
 
 def main():
-    target = ["8.8.8.8", "1.1.1.1", "208.67.222.222", "180.76.76.76", "185.228.168.9"]
+    target = ["8.8.8.8", "1.1.1.1", "94.140.14.14", "185.222.222.222", "45.11.45.11"]
 
     print("STARTING DATA COLLECTION...\n")
 

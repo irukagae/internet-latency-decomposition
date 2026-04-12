@@ -27,7 +27,7 @@ This project follows a strict MLOps lifecycle, prioritizing original data collec
 - [x] Repository Architecture & Environment Setup
 - [x] Develop `src/collection/` to build probes; capture active & passive probes; and `csv_writer.py`.
 - [x] Build `orchestrator.py` to collect data on the basis of active and passive probes.
-- [ ] Start collecting raw dataset (`data/raw/`).
+- [x] Start collecting raw dataset (`data/raw/`).
 
 ### Phase 2: Analysis & Baseline Modeling
 - [ ] Exploratory Data Analysis (EDA) to visualize Packet Size vs. RTT linear relationships.

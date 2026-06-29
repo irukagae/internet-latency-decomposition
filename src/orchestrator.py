@@ -1,6 +1,7 @@
 import time
 import uuid
 import threading
+import calendar
 from datetime import datetime, UTC
 from scapy.all import conf
 from pathlib import Path
@@ -29,7 +30,9 @@ def get_active_interface():
 # experiment parameters
 protocol = ["tcp", "icmp", "udp"] # protocols to probe with
 packet_size = [64, 128, 256, 512, 1024, 1400]  # packet sizes in bytes to vary D_trans
-location = "in"  # source location hardcoded to INDIA
+
+#change: updating this to 'sg' while collecting data natively from Singapore
+location = "sg"  # source location hardcoded to INDIA once begin back to natively collecting data from India.
 
 # probe configuration
 num_probes = 30  # number of probes per experiment
@@ -37,11 +40,18 @@ probe_interval = 0.25  # seconds between consecutive probes
 timeout = 1.0  # seconds to wait for a response before marking probe a failure
 
 def get_week_of_month():
-    """Returns the week of the month as w1/w2/w3/w4/w5 based on the current day."""
+    """Returns the true calendar week of the month (w1, w2, etc.). Weeks are defined as Monday to Sunday"""
 
-    day = datetime.now().day
-    week_num = (day - 1) // 7+1
-    return f"w{week_num}"
+    now = datetime.now()
+
+    #monthcalendar generates a list of weeks for a given month.
+    #each week is a list of 7 days (monday - sunday). days outside the month are 0.
+    month_cal = calendar.monthcalendar(now.year, now.month)
+
+    #iterate through the weeks to find out which one contains the current day.
+    for week_idx, week in enumerate(month_cal):
+        if now.day in week:
+            return f"w{week_idx + 1}"
 
 def run_single_expt(protocol, packet_size, dst_ip, source_location, target):
     """Executes a single end-to-end experiment: passive capture + active probing + CSV writing

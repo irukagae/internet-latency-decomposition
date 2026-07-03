@@ -25,6 +25,9 @@ def get_active_interface():
     route_info = conf.route.route("0.0.0.0")  #query default route
     iface = route_info[0]
     src_ip = route_info[1]
+
+    conf.iface = iface
+    
     return iface, src_ip
 
 # experiment parameters

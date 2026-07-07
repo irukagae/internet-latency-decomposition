@@ -1,6 +1,6 @@
 # Internet Latency Decomposition 
 
-An end-to-end Machine Learning project to decompose aggregated Internet Round-Trip Time (RTT) into its constituent physical and logical components. This system moves beyond simple "speed tests" to diagnose the *root cause* of network latency using statistical modeling and packet-level analysis.
+An end-to-end Machine Learning project to decompose aggregated Internet Round-Trip Time (RTT) into its constituent physical and logical components. This system moves beyond simple "speed tests" to provide interpretable insights into network performance.
 
 ## 🎯 Project Objective
 Standard network tools (like `ping`) provide a single metric: Total Latency. This metric is a "black box" that hides the true behavior of the network. 
@@ -17,11 +17,10 @@ $$D_{total} = D_{prop} + D_{trans} + D_{proc} + D_{queue}$$
 * **Core Engine:** Python, Scapy (for packet-level probing)
 * **Data Processing:** Pandas, NumPy
 * **Machine Learning:** Scikit-Learn (Regression, GMM), LSTM (Planned)
-* **Automation:** GitHub Actions (Daily data harvesting)
 * **Visualization:** Matplotlib, Seaborn
 
 ## 🗺️ Project Roadmap
-This project follows a strict MLOps lifecycle, prioritizing original data collection over static datasets.
+This project follows a structured MLOps lifecycle, prioritizing original data collection and analysis.
 
 ### Phase 1: The Probe (Current Status) 🚧
 - [x] Repository Architecture & Environment Setup
@@ -29,23 +28,18 @@ This project follows a strict MLOps lifecycle, prioritizing original data collec
 - [x] Build `orchestrator.py` to collect data on the basis of active and passive probes.
 - [x] Start collecting raw dataset (`data/raw/`).
 
-### Phase 2: Analysis & Baseline Modeling
+### Phase 2: Analysis & Baseline Modeling 🔄
 - [ ] Exploratory Data Analysis (EDA) to visualize Packet Size vs. RTT linear relationships.
 - [ ] Train **Baseline Heuristic Model** (Minimum RTT subtraction).
 - [ ] Train **Linear Regression Model** to estimate link bandwidth ($D_{trans}$).
-
-### Phase 3: The Automation
-- [ ] Configure GitHub Actions for **Daily Data Collection**.
-- [ ] Build `src/monitor.py` to detect **Data Drift** (network route changes).
-- [ ] Implement automated weekly model evaluation.
 
 ## 📂 Repository Structure
 ```text
 internet-latency-decomposition/
 ├── .github/workflows/   
 ├── data
-|   ├──processed/
-|   └──raw/
+│   ├── processed/
+│   └── raw/
 ├── notebooks/           
 ├── src/
 │   ├── collection/
@@ -70,6 +64,12 @@ internet-latency-decomposition/
 ├── notes/    
 └── README.md            
 ```
+
+## 📊 Expected Outcomes
+- A trained statistical model capable of decomposing RTT into its constituent components
+- Interpretable insights into which component (propagation, transmission, processing, or queuing) dominates latency for different network paths
+- A methodology for detecting network anomalies through latency decomposition
+
 ---
 
 Author: Vedang Kulkarni

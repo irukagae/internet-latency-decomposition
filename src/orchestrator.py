@@ -25,17 +25,12 @@ def get_active_interface():
     route_info = conf.route.route("0.0.0.0")  #query default route
     iface = route_info[0]
     src_ip = route_info[1]
-
-    conf.iface = iface
-    
     return iface, src_ip
 
 # experiment parameters
 protocol = ["tcp", "icmp", "udp"] # protocols to probe with
 packet_size = [64, 128, 256, 512, 1024, 1400]  # packet sizes in bytes to vary D_trans
-
-#change: updating this to 'sg' while collecting data natively from Singapore
-location = "sg"  # source location hardcoded to INDIA once begin back to natively collecting data from India.
+location = "in"  # source location hardcoded to INDIA
 
 # probe configuration
 num_probes = 30  # number of probes per experiment

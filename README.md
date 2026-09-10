@@ -1,5 +1,8 @@
 # Internet Latency Decomposition
 
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![Status](https://img.shields.io/badge/Status-Active%20Research-yellow)
+
 A machine learning research project that decomposes aggregated Internet Round-Trip Time (RTT) measurements into their constituent physical and logical components using a domain-informed Two-Stage Hybrid Residual Architecture.
 
 Instead of treating latency as a simple "speed test," this system maps the underlying components of network delay—propagation, transmission, processing, and queuing—to enable geographic network profiling, anomaly detection, and granular performance insights.
@@ -35,6 +38,7 @@ Standard machine learning models struggle to balance the rigid physical laws of 
 └──────────────────────────────────────────────┘
 ```
 
+
 ### Stage 1: The Physical Layer (Linear / Quantile Regression)
 
 **Objective:** Capture the deterministic, structural physics of the network path.
@@ -64,7 +68,7 @@ $$
 ## 🛠️ Stack & Technologies
 
 - **Core Language:** Python 3.x (100%)
-- **Network Manipulation Engine:** Scapy (low-level packet crafting, L2 injection via srp1(), asynchronous passive sniffing)
+- **Network Manipulation Engine:** Scapy (low-level packet crafting, L2 injection via `srp1()`, asynchronous passive sniffing)
 - **Data Engineering:** Pandas, NumPy
 - **Statistical Modeling & Machine Learning:** Scikit-Learn, XGBoost
 - **Visualizations & EDA:** Matplotlib, Seaborn
@@ -76,30 +80,33 @@ $$
 ```text
 internet-latency-decomposition/
 ├── src/
-│   ├── collection/              # Data collection orchestration
-│   │   ├── probe/               # Protocol-specific packet builders
-│   │   │   ├── base.py          # RTT measurement abstraction & ARP caching
-│   │   │   ├── icmp.py          # ICMP Type 8 Echo Request builder
-│   │   │   ├── tcp.py           # TCP SYN packet builder (Port 80/443)
-│   │   │   └── udp.py           # UDP datagram builder (Port 33434)
-│   │   ├── capture/
-│   │   │   └── passive.py       # Async background packet sniffing thread
-│   │   ├── experiment/
-│   │   │   └── runner.py        # Active probing loop & structural synchronization
-│   │   └── persistence/
-│   │       └── csv_writer.py    # Time-partitioned serialization logic
-│   ├── orchestrator.py          # Main execution driver (Target/Size/Protocol sweeps)
-│   ├── preprocessing.py         # Rolling feature extractors & Stage 1/2 data split pipeline
-│   ├── model.py                 # Hybrid residual training framework (LR + XGBoost cascaded loops)
-│   └── __init__.py
+│ ├── collection/ # Data collection orchestration
+│ │ ├── probe/ # Protocol-specific packet builders
+│ │ │ ├── base.py # RTT measurement abstraction & ARP caching
+│ │ │ ├── icmp.py # ICMP Type 8 Echo Request builder
+│ │ │ ├── tcp.py # TCP SYN packet builder (Port 80/443)
+│ │ │ └── udp.py # UDP datagram builder (Port 33434)
+│ │ ├── capture/
+│ │ │ └── passive.py # Async background packet sniffing thread
+│ │ ├── experiment/
+│ │ │ └── runner.py # Active probing loop & structural synchronization
+│ │ └── persistence/
+│ │ └── csv_writer.py # Time-partitioned serialization logic
+│ ├── orchestrator.py # Main execution driver (Target/Size/Protocol sweeps)
+│ ├── preprocessing.py # Rolling feature extractors & Stage 1/2 data split pipeline
+│ ├── model.py # Hybrid residual training framework (LR + XGBoost cascaded loops)
+│ └── init.py
 ├── data/
-│   ├── raw/                     # Time-partitioned CSV logs from active & passive loops
-│   └── processed/               # Extracted features, scaled matrices, and isolated residuals
-├── notebooks/                   # Jupyter notebooks for cross-country EDA & GMM clustering
-├── notes/                       # In-depth architectural & protocol analysis notes
-├── requirements.txt             # Project dependency manifest
-└── README.md                    # System documentation
+│ ├── raw/ # Time-partitioned CSV logs from active & passive loops
+│ └── processed/ # Extracted features, scaled matrices, and isolated residuals
+├── notebooks/ # Jupyter notebooks for cross-country EDA & GMM clustering
+├── notes/ # In-depth architectural & protocol analysis notes
+├── requirements.txt # Project dependency manifest
+└── README.md # System documentation                  # System documentation
 ```
+
+---
+
 
 ---
 
@@ -141,6 +148,19 @@ Compile findings into a comprehensive academic research paper outlining the effi
 
 ---
 
+## 📊 Current Status & Preliminary Results
+
+> _This section is a placeholder — update it as results come in._
+
+- ✅ Data collection pipeline (probes + passive capture) implemented and running
+- ⏳ Preprocessing pipeline (Stage 1/2 split, cyclic time features): in progress
+- ⏳ Hybrid model training & evaluation: not yet started
+- ⏳ Cross-country GMM analysis: not yet started
+
+Once Phase 3 evaluation is complete, this section will include RMSE/MAE comparisons between the Hybrid Cascade, Pure Linear Regression, and Pure XGBoost baselines.
+
+---
+
 ## 🚀 How to Run
 
 ### Installation & System Setup
@@ -155,3 +175,14 @@ cd internet-latency-decomposition
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+### Running Data Collection
+
+```bash
+# Run the orchestrator (requires root/admin for raw socket access)
+sudo python3 src/orchestrator.py
+```
+
+This sweeps across the configured DNS targets, payload sizes, and protocols, writing time-partitioned CSV logs to `data/raw/`.
+
+---

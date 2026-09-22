@@ -10,3 +10,4 @@ venv/
 # Ignore IDE configuration files
 .idea/
 *.iml
+.vscode

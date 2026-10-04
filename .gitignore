@@ -11,3 +11,6 @@ venv/
 .idea/
 *.iml
 .vscode
+
+# Ignore raw and processed data
+data/

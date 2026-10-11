@@ -197,15 +197,16 @@ def process_week(active_path, passive_path, location, week_label):
     validate_active_schema(active_clean)
     validate_passive_schema(passive_clean)
 
-    # write processed master file
-    active_master_path = processed_dir / "active_processed_master.csv"
-    passive_master_path = processed_dir / "passive_processed_master.csv"
+    # write to per-location, per-week files
+    output_dir = processed_dir / location
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    active_file_exists = active_master_path.exists()
-    passive_file_exists = passive_master_path.exists()
+    active_out = output_dir / f"active_processed_{week_label}.csv"
+    passive_out = output_dir / f"passive_processed_{week_label}.csv"
 
-    active_clean.to_csv(active_master_path, mode='a', header=not active_file_exists, index=False)
-    passive_clean.to_csv(passive_master_path, mode='a', header=not passive_file_exists, index=False)
+
+    active_clean.to_csv(active_out, index=False)
+    passive_clean.to_csv(passive_out, index=False)
 
     # update registry
     update_registry(location, week_label, len(active_clean), len(passive_clean))
@@ -216,9 +217,8 @@ def process_week(active_path, passive_path, location, week_label):
              f"({len(active_clean) / active_raw_count * 100:.1f}% retained)")
     log.info(f"Passive: {passive_raw_count} raw -> {len(passive_clean)} clean "
              f"({len(passive_clean) / passive_raw_count * 100:.1f}% retained)")
-    log.info(f"Appended to: {active_master_path}")
-    log.info(f"Appended to: {passive_master_path}")
-    log.info(f"Log saved to: {log_dir / f'{location}_{week_label}.log'}")
+    log.info(f"Saved to: {active_out}")
+    log.info(f"Saved to: {passive_out}")
 
 # CLI entry points
 def main():

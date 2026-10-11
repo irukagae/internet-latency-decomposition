@@ -98,11 +98,13 @@ internet-latency-decomposition/
 │ └── init.py
 ├── data/
 │ ├── raw/ # Time-partitioned CSV logs from active & passive loops
-│ └── processed/ # Extracted features, scaled matrices, and isolated residuals
+│ ├── processed/ # Extracted features, scaled matrices, and isolated residuals
+│ └── registry/ # Keeps the record of which dataset has been preprocessed
+├── logs/ # Logs of preprocessing are maintained here
 ├── notebooks/ # Jupyter notebooks for cross-country EDA & GMM clustering
 ├── notes/ # In-depth architectural & protocol analysis notes
 ├── requirements.txt # Project dependency manifest
-└── README.md # System documentation                  # System documentation
+└── README.md # System documentation                  
 ```
 
 ---
@@ -153,7 +155,7 @@ Compile findings into a comprehensive academic research paper outlining the effi
 > _This section is a placeholder — update it as results come in._
 
 - ✅ Data collection pipeline (probes + passive capture) implemented and running
-- ⏳ Preprocessing pipeline (Stage 1/2 split, cyclic time features): in progress
+- ✅ Preprocessing pipeline (Stage 1/2 split, cyclic time features): implemented
 - ⏳ Hybrid model training & evaluation: not yet started
 - ⏳ Cross-country GMM analysis: not yet started
 
@@ -186,3 +188,12 @@ sudo python3 src/orchestrator.py
 This sweeps across the configured DNS targets, payload sizes, and protocols, writing time-partitioned CSV logs to `data/raw/`.
 
 ---
+
+### Executing Preprocessing of Raw data
+
+```bash
+# Run the preprocessing pipeline
+sudo python3 src/preprocessing.py --active data/raw/active_probe_raw_2026_08_w2.csv --passive data/raw/passive_probe_raw_2026_08_w2.csv --location in --week 2026_08_w2
+```
+
+This would perform the preprocessing for the raw data collected in Week2 of August from India.

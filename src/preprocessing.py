@@ -90,10 +90,10 @@ def clean_active_data(active_df, location):
     df = df[df['success'] == True]
     log.info(f"Dropped {dropped_failed} failed probes (timeout, null RTT")
 
-    # dropped zero RTT rows (measurement artifacts, nor real 0ms RTT)
-    dropped_zero = (df['rtt_ms'] == 0).sum()
-    df = df[df['rtt_ms'] > 0]
-    log.info(f"Dropped {dropped_zero} zero RTT measurement artifacts")
+    # keep zero-RTT rows (responses faster than 15.6 ms clock tick) and flag them
+    zero_count = (df['rtt_ms'] == 0).sum()
+    df = df.assign(rtt_below_tick=(df['rtt_ms'] == 0))
+    log.info(f"Keep {zero_count} zero-RTT rows (faster than 15.6 ms clock tick")
 
     # dropped extreme outliers (RTT > 500ms)
     dropped_outliers = (df['rtt_ms'] > 500).sum()
@@ -142,11 +142,11 @@ def clean_passive_data(passive_df, valid_experiment_ids):
 # Schema Validation - catches silent drifts before it corrupts the master file
 def validate_active_schema(df):
     expected_columns = {"timestamp", "experiment_id", "source_location", "protocol", "dst_ip", "packet_size", "probe_index",
-                        "success", "rtt_ms", "send_timestamp", "recv_timestamp", "location", "week"}
+                        "success", "rtt_ms", "send_timestamp", "recv_timestamp", "rtt_below_tick", "location", "week"}
     missing = expected_columns - set(df.columns)
     assert not missing, f"Schema mismatch — missing columns: {missing}"
 
-    assert df["rtt_ms"].min() > 0, "Zero/negative RTT leaked through cleaning"
+    assert df["rtt_ms"].min() >= 0, "Negative RTT leaked through cleaning"
     assert df["rtt_ms"].max() <= 500, "Outlier leaked through cleaning"
     assert df["success"].all(), "Failed probes leaked through cleaning"
     log.info("Active schema validation passed")

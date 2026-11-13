@@ -154,8 +154,9 @@ Compile findings into a comprehensive academic research paper outlining the effi
 
 > _This section is a placeholder — update it as results come in._
 
-- ✅ Data collection pipeline (probes + passive capture) implemented and running
+- ✅ Data collection pipeline (probes + passive capture): implemented
 - ✅ Preprocessing pipeline (Stage 1/2 split, cyclic time features): implemented
+- ✅ Feature Engineering & Baseline Extrapolation: implemented
 - ⏳ Hybrid model training & evaluation: not yet started
 - ⏳ Cross-country GMM analysis: not yet started
 
@@ -182,7 +183,7 @@ pip install -r requirements.txt
 
 ```bash
 # Run the orchestrator (requires root/admin for raw socket access)
-sudo python3 src/orchestrator.py
+python src/orchestrator.py
 ```
 
 This sweeps across the configured DNS targets, payload sizes, and protocols, writing time-partitioned CSV logs to `data/raw/`.
@@ -193,7 +194,21 @@ This sweeps across the configured DNS targets, payload sizes, and protocols, wri
 
 ```bash
 # Run the preprocessing pipeline
-sudo python3 src/preprocessing.py --active data/raw/active_probe_raw_2026_08_w2.csv --passive data/raw/passive_probe_raw_2026_08_w2.csv --location in --week 2026_08_w2
+python src/preprocessing.py --active data/raw/active_probe_raw_2026_08_w2.csv --passive data/raw/passive_probe_raw_2026_08_w2.csv --location in --week 2026_08_w2
 ```
 
 This would perform the preprocessing for the raw data collected in Week2 of August from India.
+
+---
+
+### Running Feature Engineering
+
+After preprocessing, run the feature engineering pipeline from the project root:
+```bash
+# Run the feature engineering pipeline
+python src/feature_engineering.py
+```
+
+The pipeline combines active probe statistics and passive background-traffic features using `experiment_id`, producing one row per
+experiment. It adds cyclic local-time features and categorical encodings, excludes unreliable TCP probe measurements, and validates the
+resulting feature tables.

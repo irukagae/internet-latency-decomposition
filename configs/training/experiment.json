@@ -1,0 +1,9 @@
+{
+  "target": "rtt_mean",
+  "validation_fraction": 0.20,
+  "seed": 42,
+  "weeks": {
+    "sg": {"development": "2026_07_w2", "test": "2026_07_w3"},
+    "in": {"development": "2026_08_w2", "test": "2026_08_w3"}
+  }
+}
